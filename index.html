@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مساعد الدراسة الطبية</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #f4f7fb;
+      color: #172033;
+    }
+
+    header {
+      background: #0b5ed7;
+      color: white;
+      padding: 22px 18px;
+      border-radius: 0 0 25px 25px;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 25px;
+    }
+
+    header p {
+      margin: 0;
+      opacity: .9;
+    }
+
+    main {
+      padding: 18px;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 13px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .primary {
+      background: #0b5ed7;
+      color: white;
+    }
+
+    .secondary {
+      background: white;
+      color: #0b5ed7;
+      border: 1px solid #d9e2f2;
+    }
+
+    .subjects {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+      gap: 12px;
+    }
+
+    .subject {
+      background: white;
+      padding: 18px;
+      border-radius: 18px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.07);
+      cursor: pointer;
+    }
+
+    .subject h3 {
+      margin: 8px 0;
+    }
+
+    .subject span {
+      font-size: 30px;
+    }
+
+    .section {
+      background: white;
+      margin-top: 20px;
+      padding: 18px;
+      border-radius: 18px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.06);
+    }
+
+    textarea, input {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #d5dce8;
+      border-radius: 12px;
+      margin: 8px 0;
+      font-size: 15px;
+    }
+
+    textarea {
+      min-height: 140px;
+      resize: vertical;
+    }
+
+    .result {
+      background: #f0f6ff;
+      padding: 15px;
+      border-radius: 12px;
+      margin-top: 12px;
+      white-space: pre-wrap;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 30px;
+      color: #718096;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>🩺 مساعد الدراسة الطبية</h1>
+  <p>نظّم موادك الدراسية في مكان واحد</p>
+</header>
+
+<main>
+
+  <div class="actions">
+    <button class="primary" onclick="addSubject()">➕ إضافة مادة</button>
+    <button class="secondary" onclick="changeLanguage()">🌐 English / العربية</button>
+  </div>
+
+  <h2>📚 المواد الدراسية</h2>
+
+  <div id="subjects" class="subjects"></div>
+
+  <div class="section">
+    <h2>📝 مساعد المحاضرات</h2>
+
+    <input id="lectureTitle" placeholder="اسم المحاضرة">
+
+    <textarea id="lectureText"
+      placeholder="الصق نص المحاضرة هنا..."></textarea>
+
+    <div class="actions">
+      <button class="primary" onclick="summarize()">📌 تلخيص</button>
+      <button class="secondary" onclick="keyPoints()">💡 النقاط المهمة</button>
+    </div>
+
+    <button class="secondary" onclick="generateQuestions()">
+      🧠 إنشاء أسئلة MCQ
+    </button>
+
+    <div id="result" class="result" style="display:none;"></div>
+  </div>
+
+</main>
+
+<script>
+
+let subjects = JSON.parse(localStorage.getItem("subjects")) || [
+  "Anatomy",
+  "Physiology",
+  "Biochemistry",
+  "Histology",
+  "Pathology",
+  "Pharmacology",
+  "Microbiology",
+  "Immunology",
+  "Internal Medicine",
+  "Surgery",
+  "Pediatrics",
+  "Obstetrics & Gynecology"
+];
+
+function saveSubjects() {
+  localStorage.setItem("subjects", JSON.stringify(subjects));
+}
+
+function displaySubjects() {
+
+  const container = document.getElementById("subjects");
+  container.innerHTML = "";
+
+  if (subjects.length === 0) {
+    container.innerHTML =
+      '<div class="empty">لا توجد مواد. أضف مادة جديدة.</div>';
+    return;
+  }
+
+  subjects.forEach((subject, index) => {
+
+    const card = document.createElement("div");
+    card.className = "subject";
+
+    card.innerHTML = `
+      <span>📖</span>
+      <h3>${subject}</h3>
+      <button class="secondary"
+        onclick="renameSubject(${index}); event.stopPropagation();">
+        ✏️ تعديل
+      </button>
+      <button class="secondary"
+        onclick="deleteSubject(${index}); event.stopPropagation();">
+        🗑️ حذف
+      </button>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+function addSubject() {
+
+  const name = prompt("اكتب اسم المادة:");
+
+  if (!name || !name.trim()) return;
+
+  subjects.push(name.trim());
+  saveSubjects();
+  displaySubjects();
+}
+
+function renameSubject(index) {
+
+  const newName = prompt(
+    "اكتب الاسم الجديد:",
+    subjects[index]
+  );
+
+  if (!newName || !newName.trim()) return;
+
+  subjects[index] = newName.trim();
+
+  saveSubjects();
+  displaySubjects();
+}
+
+function deleteSubject(index) {
+
+  if (!confirm("هل تريد حذف هذه المادة؟")) return;
+
+  subjects.splice(index, 1);
+
+  saveSubjects();
+  displaySubjects();
+}
+
+function showResult(text) {
+
+  const result = document.getElementById("result");
+
+  result.style.display = "block";
+  result.textContent = text;
+}
+
+function summarize() {
+
+  const text = document.getElementById("lectureText").value.trim();
+
+  if (!text) {
+    alert("اكتب نص المحاضرة أولاً.");
+    return;
+  }
+
+  const sentences = text
+    .split(/[.!؟\n]/)
+    .filter(x => x.trim().length > 0);
+
+  const summary = sentences
+    .slice(0, 5)
+    .map(x => "• " + x.trim())
+    .join("\n");
+
+  showResult(
+    "📌 ملخص المحاضرة:\n\n" + summary
+  );
+}
+
+function keyPoints() {
+
+  const text = document.getElementById("lectureText").value.trim();
+
+  if (!text) {
+    alert("اكتب نص المحاضرة أولاً.");
+    return;
+  }
+
+  const words = text.split(/\s+/);
+
+  const important = words
+    .filter(word => word.length >= 7)
+    .slice(0, 15);
+
+  showResult(
+    "💡 كلمات ومفاهيم مهمة:\n\n" +
+    important.map(x => "• " + x).join("\n")
+  );
+}
+
+function generateQuestions() {
+
+  const text = document.getElementById("lectureText").value.trim();
+
+  if (!text) {
+    alert("اكتب نص المحاضرة أولاً.");
+    return;
+  }
+
+  showResult(
+`🧠 أسئلة MCQ
+
+1. ما الفكرة الرئيسية في هذه المحاضرة؟
+
+A) المفهوم الأول
+B) المفهوم الثاني
+C) المفهوم الثالث
+D) جميع ما سبق
+
+الإجابة: D
+
+ملاحظة:
+سيتم تطوير مولد أسئلة بالذكاء الاصطناعي في المرحلة القادمة.`
+  );
+}
+
+function changeLanguage() {
+
+  const current = document.documentElement.lang;
+
+  if (current === "ar") {
+
+    document.documentElement.lang = "en";
+    document.documentElement.dir = "ltr";
+
+    document.querySelector("header h1").textContent =
+      "🩺 Medical Study Assistant";
+
+    document.querySelector("header p").textContent =
+      "Organize your medical studies in one place";
+
+  } else {
+
+    document.documentElement.lang = "ar";
+    document.documentElement.dir = "rtl";
+
+    document.querySelector("header h1").textContent =
+      "🩺 مساعد الدراسة الطبية";
+
+    document.querySelector("header p").textContent =
+      "نظّم موادك الدراسية في مكان واحد";
+  }
+}
+
+displaySubjects();
+
+</script>
+
+</body>
+</html>
